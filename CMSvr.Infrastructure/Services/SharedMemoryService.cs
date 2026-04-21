@@ -115,15 +115,15 @@ namespace CMSvr.Infrastructure.Services
 
     public static class SharedMemoryObjectNames
     {
-        public const string PmacState = "PMAC_STATE";
-        public const string PThreadState = "PTHREAD_STATE";
-        public const string ToolMgr = "TOOL_MGR";
-        public const string MaintenanceMgr = "MAINTENANCE_MGR";
-        public const string ConfigData = "CONFIG_DATA";
-        public const string NcFileMgr = "NCFILE_MGR";
-        public const string NcFileObj = "NC_FILE_OBJ";
-        public const string AutoCalParam = "AUTOCAL_PARAM";
-        public const string CoordinateOffsetDataRange = "COORD_OFFSET_DATA_RANGE";
-        public const string MeasureParamEtc = "MEASURE_PARAM_ETC";
+        public const string PmacState = "PMAC_STATE_01";
+        public const string PThreadState = "PTHREAD_STATE_01";
+        public const string ToolMgr = "TOOL_MGR_01";
+        public const string MaintenanceMgr = "MAINTENANCE_MGR_01";
+        public const string ConfigData = "CONFIG_DATA_01";
+        public const string NcFileMgr = "NCFILE_MGR"; // NCFILE_MGR은 01이 붙지 않음 (C++ 헤더 확인 결과)
+        public const string NcFileObj = "NC_FILE_OBJ_01";
+        public const string AutoCalParam = "AUTOCAL_PARAM_01";
+        public const string CoordinateOffsetDataRange = "COORD_OFFSET_DATA_RANGE_01";
+        public const string MeasureParamEtc = "MEASURE_PARAM_ETC_01";
     }
 }
