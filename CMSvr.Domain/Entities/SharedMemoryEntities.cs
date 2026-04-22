@@ -178,27 +178,27 @@ namespace CMSvr.Domain.Entities
         public uint dwErrCode;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 1056)]
     public unsafe struct SToolData
     {
-        public int bEnableToolUsageTime;
-        public int bEnableRelatedTool;
-        public double fTimeCountZAxisPos;
+        [FieldOffset(0)] public int bEnableToolUsageTime;
+        [FieldOffset(4)] public int bEnableRelatedTool;
+        [FieldOffset(8)] public double fTimeCountZAxisPos;
 
-        private STool hTool1;
-        private STool hTool2;
-        private STool hTool3;
-        private STool hTool4;
-        private STool hTool5;
-        private STool hTool6;
-        private STool hTool7;
-        private STool hTool8;
-        private STool hTool9;
-        private STool hTool10;
-        private STool hTool11;
+        [FieldOffset(16)] private STool hTool1;
+        [FieldOffset(40)] private STool hTool2;
+        [FieldOffset(64)] private STool hTool3;
+        [FieldOffset(88)] private STool hTool4;
+        [FieldOffset(112)] private STool hTool5;
+        [FieldOffset(136)] private STool hTool6;
+        [FieldOffset(160)] private STool hTool7;
+        [FieldOffset(184)] private STool hTool8;
+        [FieldOffset(208)] private STool hTool9;
+        [FieldOffset(232)] private STool hTool10;
+        [FieldOffset(256)] private STool hTool11;
 
-        public int nNumDataForRelatedTool;
-        public fixed char szRelateTool[12 * 64];
+        [FieldOffset(280)] public int nNumDataForRelatedTool;
+        [FieldOffset(284)] public fixed byte szRelateTool[12 * 64];
 
         /// <summary>
         /// STool 배열에 접근하기 위한 포인터 속성 (index: 0~10)

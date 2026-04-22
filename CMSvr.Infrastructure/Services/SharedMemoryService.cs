@@ -10,12 +10,16 @@ namespace CMSvr.Infrastructure.Services
     public unsafe class SharedMemoryService : IDisposable
     {
         private readonly string _tagName;
+        private readonly string _ipcFilePath;
         private readonly ConcurrentDictionary<string, (MemoryMappedFile mmf, MemoryMappedViewAccessor accessor)> _cache = 
             new ConcurrentDictionary<string, (MemoryMappedFile, MemoryMappedViewAccessor)>();
 
         public SharedMemoryService(string tagName = "01")
         {
             _tagName = tagName;
+            // 기본 IPC 파일 경로 설정 (Chairman_VS2022 내부)
+            _ipcFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Chairman_VS2022", "Data", "Epnc", "IPCFILES");
+            // 만약 위 경로가 부정확하다면 실행 파일 위치에 맞게 조정 필요
         }
 
         private string GetFullObjectName(string baseName)
@@ -34,23 +38,35 @@ namespace CMSvr.Infrastructure.Services
 
             try
             {
+                // 1. 먼저 순수 커널 객체로 시도 (NULL 경로 생성 방식)
                 var mmf = MemoryMappedFile.OpenExisting(fullName, MemoryMappedFileRights.ReadWrite);
                 var accessor = mmf.CreateViewAccessor(0, size, MemoryMappedFileAccess.ReadWrite);
                 
                 var entry = (mmf, accessor);
-                if (_cache.TryAdd(fullName, entry))
-                {
-                    return accessor;
-                }
-                else
-                {
-                    accessor.Dispose();
-                    mmf.Dispose();
-                    return _cache[fullName].accessor;
-                }
+                _cache.TryAdd(fullName, entry);
+                return accessor;
             }
             catch (FileNotFoundException)
             {
+                // 2. 실패 시 파일 기반 매핑 시도
+                string shmFileName = $"SHM_{fullName}";
+                // 실제 환경에 맞게 경로 재탐색 (프로젝트 루트의 Data 폴더)
+                string fullPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "Chairman_VS2022", "Data", "Epnc", "IPCFILES", shmFileName));
+                
+                if (File.Exists(fullPath))
+                {
+                    try
+                    {
+                        var mmf = MemoryMappedFile.CreateFromFile(fullPath, FileMode.Open, fullName, size, MemoryMappedFileAccess.ReadWrite);
+                        var accessor = mmf.CreateViewAccessor(0, size, MemoryMappedFileAccess.ReadWrite);
+                        _cache.TryAdd(fullName, (mmf, accessor));
+                        return accessor;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
                 return null;
             }
         }
@@ -66,7 +82,6 @@ namespace CMSvr.Infrastructure.Services
             accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
             try
             {
-                // 포인터 캐스팅을 통한 직접 읽기 (복사 비용 최소화)
                 return *(T*)ptr;
             }
             finally
@@ -82,18 +97,14 @@ namespace CMSvr.Infrastructure.Services
 
             if (accessor == null)
             {
-                string fullName = GetFullObjectName(objectName);
-                var mmf = MemoryMappedFile.CreateOrOpen(fullName, size, MemoryMappedFileAccess.ReadWrite);
-                var newAccessor = mmf.CreateViewAccessor(0, size, MemoryMappedFileAccess.ReadWrite);
-                _cache.TryAdd(fullName, (mmf, newAccessor));
-                accessor = newAccessor;
+                // 새로 생성 로직은 현재 생략 (장비에서 생성하므로)
+                return;
             }
 
             byte* ptr = null;
             accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
             try
             {
-                // 포인터 캐스팅을 통한 직접 쓰기
                 *(T*)ptr = data;
             }
             finally
@@ -120,7 +131,7 @@ namespace CMSvr.Infrastructure.Services
         public const string ToolMgr = "TOOL_MGR_01";
         public const string MaintenanceMgr = "MAINTENANCE_MGR_01";
         public const string ConfigData = "CONFIG_DATA_01";
-        public const string NcFileMgr = "NCFILE_MGR"; // NCFILE_MGR은 01이 붙지 않음 (C++ 헤더 확인 결과)
+        public const string NcFileMgr = "NCFILE_MGR";
         public const string NcFileObj = "NC_FILE_OBJ_01";
         public const string AutoCalParam = "AUTOCAL_PARAM_01";
         public const string CoordinateOffsetDataRange = "COORD_OFFSET_DATA_RANGE_01";
