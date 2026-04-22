@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using CMSvr.Infrastructure.Services;
 using CMSvr.Domain.Entities;
+using CMSvr.Infrastructure.Utils;
 
 namespace CMSvr.Controllers
 {
@@ -20,9 +21,6 @@ namespace CMSvr.Controllers
         {
             var status = _sharedMemoryService.ReadSharedMemory<SPAStatus>(SharedMemoryObjectNames.PmacState);
 
-            // 단순 반환 시 포인터나 fixed buffer가 포함된 구조체는 직렬화가 복잡할 수 있으므로, 
-            // 필요한 정보만 추출하여 익명 객체로 반환하는 것이 좋습니다.
-
             var result = new {
                 MDCode = status.nMDCode,
                 LineNumber = status.nLineNumber,
@@ -37,7 +35,8 @@ namespace CMSvr.Controllers
                 InputBits = GetInputBits(status),
                 RndErrorCode = status.nRndErrorCode,
                 MotorOverRide = status.nMotorOverride,
-                LCDReflash = status.bLCDRefresh
+                LCDRefresh = status.bLCDRefresh,
+                CurrentFileName = BytePtrConverter.GetString(status.szCurrentFileName, 128)
             };
 
             return Ok(result);
@@ -52,6 +51,26 @@ namespace CMSvr.Controllers
                 status.fPosition[3], status.fPosition[4] 
             };
             return Ok(pos);
+        }
+
+        [HttpGet("thread-state")]
+        public unsafe IActionResult GetThreadState()
+        {
+            var state = _sharedMemoryService.ReadSharedMemory<SThreadState>(SharedMemoryObjectNames.PThreadState);
+            
+            var result = new {
+                ConnectStatus = state.hConnectStatus.ToString(),
+                RunMode = state.hRunMode.ToString(),
+                IsOpenNCFile = state.bIsOpenNCFile == 1,
+                FileName = BytePtrConverter.GetString(state.hNCFileInfo.file_name, 257),
+                RunningTime = state.dwRunningTime,
+                IsNCFileRun = state.bIsNCFileRun_ == 1,
+                RawIsNCFileRun = state.bIsNCFileRun_,
+                JogSpeed = state.nJogSpeed_,
+                ShowSetupDialog = state.bShowSetupDialog_ == 1
+            };
+
+            return Ok(result);
         }
 
         private unsafe bool[] GetInputBits(SPAStatus status)

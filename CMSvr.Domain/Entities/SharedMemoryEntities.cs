@@ -4,21 +4,45 @@ using CMSvr.Domain.Enums;
 
 namespace CMSvr.Domain.Entities
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 672)]
     public unsafe struct SNCFileInfo
     {
-        public fixed byte id[26];
-        public byte is_select;
-        public byte is_select_updown;
-        public byte state;
-        public byte finish;
-        public uint file_size;
-        public uint total_lines;
-        public uint machining_lines;
-        public fixed byte reversed[3];
-        public fixed byte start_time[20];
-        public fixed byte work_time[20];
-        public fixed byte file_name[257];
+        [FieldOffset(0)] public fixed char id[26];
+        [FieldOffset(52)] public char is_select;
+        [FieldOffset(54)] public char is_select_updown;
+        [FieldOffset(56)] public char state;
+        [FieldOffset(58)] public char finish;
+        [FieldOffset(60)] public uint file_size;
+        [FieldOffset(64)] public uint total_lines;
+        [FieldOffset(68)] public uint machining_lines;
+        [FieldOffset(72)] public fixed char reversed[3];
+        [FieldOffset(78)] public fixed char start_time[20];
+        [FieldOffset(118)] public fixed char work_time[20];
+        [FieldOffset(158)] public fixed char file_name[257];
+    }
+
+    /// <summary>
+    /// NC 파일 목록을 관리하는 공유 메모리 구조체 (SNCFileInfo[100])
+    /// </summary>
+    [StructLayout(LayoutKind.Explicit, Size = 67212)]
+    public unsafe struct SNCFileMgr
+    {
+        [FieldOffset(0)] public int nNumFiles;
+        [FieldOffset(4)] public int nCurrentFileIndex;
+        [FieldOffset(8)] public int nReversed;
+
+        [FieldOffset(12)] private SNCFileInfo hNCFileInfo1;
+
+        /// <summary>
+        /// NC 파일 목록 배열 (index: 0~99)
+        /// </summary>
+        public SNCFileInfo* hNCFileInfo
+        {
+            get
+            {
+                fixed (SNCFileInfo* p = &hNCFileInfo1) return p;
+            }
+        }
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 936)]
@@ -76,183 +100,172 @@ namespace CMSvr.Domain.Entities
         [FieldOffset(884)] public int bEMOStatus;
         [FieldOffset(888)] public int bLCDPassiveMode;
         [FieldOffset(892)] public int bLCDAlive;
-        [FieldOffset(896)] public int bLCDConfirmed;
-        [FieldOffset(900)] public int bLCDFinished;
-        [FieldOffset(904)] public int bLCDEMOclicked;
-        [FieldOffset(908)] public int bLCDStartClicked;
-        [FieldOffset(912)] public int bLCDStopClicked;
+        [FieldOffset(900)] public int bLCDConfirmed;
+        [FieldOffset(904)] public int bLCDFinished;
+        [FieldOffset(908)] public int bLCDEMOclicked;
+        [FieldOffset(912)] public int bLCDStartClicked;
+        [FieldOffset(916)] public int bLCDStopClicked;
         [FieldOffset(916)] public int bLCDReadyposClicked;
         [FieldOffset(920)] public int bLCDHomingClicked;
         [FieldOffset(924)] public int bLCDRefresh;
-        }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public unsafe struct SThreadState
-    {
-        public ConnectStatus hConnectStatus;
-        public RunMode hRunMode;
-        public int bIsOpenNCFile;
-        public SNCFileInfo hNCFileInfo;
-        public int nNCFileInfo_FirstToolChageLine;
-        public int nNCFileInfo_SecondToolChageLine;
-        public uint dwRunningTime;
-        public uint dwRunningTimeTickCount;
-        public uint dwRunningTimeErrorCount;
-        public uint dwRunningTimeTotal;
-        public uint dwRunningTimeRemain;
-        public int bIpcUpDownLoadComplete_;
-        public int bIpcCmdComplete_;
-        public int bIsOriginComplete_;
-        public int bIsDemoMode_;
-        public int bIsClientConnected_;
-        public int bRemoteLock_;
-        public int bRemoteAutoUpdate_;
-        public int bSendRegistered_NCFileList_;
-        public int bSendSDMemory_NCFileList_;
-        public int bHideErrorMsgDialog_;
-        public int bShowSetupToolDlg_;
-        public int bUpdateNcFileList_;
-        public int bUpdateNcFileListForSD_;
-        public fixed uint dwLastUsedToolChangeLineNo_[100];
-        public int nLastUsedToolChangeLineNoIndex_;
-        public int nErrorType;
-        public int nErrorCode;
-        public fixed byte szErrorType[64];
-        public int nErrorTypeIsAlarm;
-        public fixed byte szErrorCode[128];
-        public fixed byte szErrorMessage[512];
-        public int nLCDErrorCode;
-        public fixed byte szLCDErrorCode[128];
-        public fixed byte szResponseTerminalCommand_[128];
-        public fixed byte szMotionProgVersion[128];
-        public fixed byte szUIProgVersion[128];
-        public fixed byte szFileReceiverVersion[128];
-        public fixed byte szFileReceiverVersion2[128];
-        public fixed byte szPAControllerVersion[128];
-        public fixed byte szPA_IP_ARRD[32];
-        public fixed byte szCANTOPS_IP_ADDR[32];
-        public fixed byte szNEW_PA_IP_ADDR[32];
-        public fixed byte szNEW_CANTOPS_IP_ADDR[32];
-        public int bIsShowUserConfirmDlg;
-        public int bIsShowCableConnectDlg;
-        public int bIsShowOriginDlg;
-        public fixed double fSoftLimit_[12];
-        public uint dwTOTAL_LEFT_SPINDLE_RUN_TIME;
-        public uint dwTOTAL_RIGHT_SPINDLE_RUN_TIME;
-        public uint dwCLEAN_SPINDLE_RUN_TIME;
-        public uint dwTOTAL_FILTER_TIME;
-        public fixed byte szIpAddress[64];
-        public int bIsFileOpening;
-        public int nNcFileLoadingRate;
-        public int nNcFileLoadingLine;
-        public fixed byte szMaterialName[64];
-        public fixed byte szBlockName[64];
-        public int nBufferingLine;
-        public int nStartingNCCodeStepNo;
-        public int nCurrentNCCodeStepNo;
-        public int nNumberOfPreparingStep;
-        public int nRunMode_StepNo;
-        public UserMode hUserMode;
-        public int nPAYear;
-        public int nPAMonth;
-        public int nPADay;
-        public int nSetupMode;
-        public int nLCD_Start_Stop_AutoCal;
-        public fixed int nAutoCal_CheckBoxState[10];
-        public fixed int nAutoCal_CheckingItem[10];
-        public byte bFullCalibration;
-        public byte bFullAutoTeaching;
-        public byte bIsEasyCalibration;
-        public Axis hAutoCal_RotateAxis;
-        public int nAutoCal_ConnectedCable;
-        public int nAutoCal_ConnectedCable2;
-        public IntPtr hWndSetupAutoCal;
-        public fixed int nAutoTeach_CheckingItem[2];
-        public int bNoNeedPassword;
-        public int bOperationScreen_ToolButtonPressed;
-        public int bOperationScreen_UsbMemory;
-        public int bCheckStatus;
-        public int nPauseByDoorOpen;
-        public fixed int bATCTest_EnaTool[8];
-        public int nATCTest_MeasureCount;
-        public int nATCTest_WorkCount;
-        public fixed double fATCTest_MeasureResult[240];
-        public int nIsConnectedPAController;
-        public byte bConnectionFailed;
-        public int nIsConnectedIOBoard;
-        public int nBarcode_Data;
-        public int bIsPauseAirLimit_;
-        public int bCompleteResetOrigin_;
-        public int bIsReceivedPNCID_;
-        public fixed byte szPNCID_[64];
-        public int bSaveSelectedLogFiles_;
-        public fixed byte szSelectedLogFiles_[6144];
-        public int nNumSelectLogFiles_;
-        public int nLenSelectLogFiles_;
-        public int bShowSetupDialog_;
-        public int nJogSpeed_;
-        public int bIsNCFileRun_;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Explicit, Size = 13432)]
+    public unsafe struct SThreadState
+    {
+        [FieldOffset(0)] public ConnectStatus hConnectStatus;
+        [FieldOffset(4)] public RunMode hRunMode;
+        [FieldOffset(8)] public int bIsOpenNCFile;
+        [FieldOffset(12)] public SNCFileInfo hNCFileInfo; 
+        [FieldOffset(684)] public int nNCFileInfo_FirstToolChageLine;
+        [FieldOffset(688)] public int nNCFileInfo_SecondToolChageLine;
+        [FieldOffset(692)] public uint dwRunningTime;
+        [FieldOffset(696)] public uint dwRunningTimeTickCount;
+        [FieldOffset(700)] public uint dwRunningTimeErrorCount;
+        [FieldOffset(704)] public uint dwRunningTimeTotal;
+        [FieldOffset(708)] public uint dwRunningTimeRemain;
+        [FieldOffset(712)] public int bIpcUpDownLoadComplete_;
+        [FieldOffset(716)] public int bIpcCmdComplete_;
+        [FieldOffset(720)] public int bIsOriginComplete_;
+        [FieldOffset(724)] public int bIsDemoMode_;
+        [FieldOffset(728)] public int bIsClientConnected_;
+        [FieldOffset(732)] public int bRemoteLock_;
+        [FieldOffset(736)] public int bRemoteAutoUpdate_;
+        [FieldOffset(740)] public int bSendRegistered_NCFileList_;
+        [FieldOffset(744)] public int bSendSDMemory_NCFileList_;
+        [FieldOffset(748)] public int bHideErrorMsgDialog_;
+        [FieldOffset(752)] public int bShowSetupToolDlg_;
+        [FieldOffset(756)] public int bUpdateNcFileList_;
+        [FieldOffset(760)] public int bUpdateNcFileListForSD_;
+        [FieldOffset(764)] public fixed uint dwLastUsedToolChangeLineNo_[100];
+        [FieldOffset(1164)] public int nLastUsedToolChangeLineNoIndex_;
+        [FieldOffset(1168)] public int nErrorType;
+        [FieldOffset(1172)] public int nErrorCode;
+        [FieldOffset(1176)] public fixed char szErrorType[64];
+        [FieldOffset(1304)] public int nErrorTypeIsAlarm;
+        [FieldOffset(1308)] public fixed char szErrorCode[128];
+        [FieldOffset(1564)] public fixed char szErrorMessage[512];
+        [FieldOffset(2588)] public int nLCDErrorCode;
+        [FieldOffset(2592)] public fixed char szLCDErrorCode[128];
+        [FieldOffset(2848)] public fixed byte szResponseTerminalCommand_[128];
+        [FieldOffset(2976)] public fixed char szMotionProgVersion[128];
+        [FieldOffset(3232)] public fixed char szUIProgVersion[128];
+        [FieldOffset(3488)] public fixed char szFileReceiverVersion[128];
+        [FieldOffset(3744)] public fixed char szFileReceiverVersion2[128];
+        [FieldOffset(4000)] public fixed char szPAControllerVersion[128];
+        [FieldOffset(4256)] public fixed char szPA_IP_ARRD[32];
+        [FieldOffset(4320)] public fixed char szCANTOPS_IP_ADDR[32];
+        [FieldOffset(4384)] public fixed byte szNEW_PA_IP_ADDR[32];
+        [FieldOffset(4416)] public fixed byte szNEW_CANTOPS_IP_ADDR[32];
+        [FieldOffset(4448)] public int bIsShowUserConfirmDlg;
+        [FieldOffset(4452)] public int bIsShowCableConnectDlg;
+        [FieldOffset(4456)] public int bIsShowOriginDlg;
+        [FieldOffset(4464)] public fixed double fSoftLimit_[12];
+        [FieldOffset(7264)] public fixed byte szSelectedLogFiles_[6144];
+        [FieldOffset(13408)] public int nNumSelectLogFiles_;
+        [FieldOffset(13412)] public int nLenSelectLogFiles_;
+        [FieldOffset(13416)] public int bShowSetupDialog_;
+        [FieldOffset(13420)] public int nJogSpeed_;
+        [FieldOffset(13424)] public int bIsNCFileRun_;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    public unsafe struct STool
+    {
+        public uint dwMaximumTime;
+        public uint dwUsingTime;
+        public double fUsingRate;
+        public uint dwErrCode;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public unsafe struct SToolData
     {
         public int bEnableToolUsageTime;
         public int bEnableRelatedTool;
         public double fTimeCountZAxisPos;
-        public fixed byte hTool[11 * 24]; 
+
+        private STool hTool1;
+        private STool hTool2;
+        private STool hTool3;
+        private STool hTool4;
+        private STool hTool5;
+        private STool hTool6;
+        private STool hTool7;
+        private STool hTool8;
+        private STool hTool9;
+        private STool hTool10;
+        private STool hTool11;
+
         public int nNumDataForRelatedTool;
-        public fixed byte szRelateTool[12 * 64];
+        public fixed char szRelateTool[12 * 64];
+
+        /// <summary>
+        /// STool 배열에 접근하기 위한 포인터 속성 (index: 0~10)
+        /// </summary>
+        public STool* hTool
+        {
+            get
+            {
+                fixed (STool* p = &hTool1) return p;
+            }
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 1104)]
+    public unsafe struct SConfigData
+    {
+        [FieldOffset(0)] public fixed double fCoordOffset[10];
+        [FieldOffset(80)] public fixed double fTeachingPoint[55];
+        [FieldOffset(520)] public fixed double fOptionData[9];
+        [FieldOffset(592)] public int bUsingDetectBlock;
+        [FieldOffset(596)] public int nDelayGripBlock;
+        [FieldOffset(600)] public int bUsingAirLimitSensor;
+        [FieldOffset(604)] public int nAirLimitInterval;
+        [FieldOffset(608)] public int bUsingOpPanel;
+        [FieldOffset(612)] public int bUsingLCD;
+        [FieldOffset(616)] public int nSelectM28Operation;
+        [FieldOffset(620)] public int nToolErrorOccure_HandlingCode;
+        [FieldOffset(624)] public fixed int nToolTimesPerMilling[11];
+        [FieldOffset(668)] public int nEnableOperationLog;
+        [FieldOffset(672)] public int nEnableIpcCommLog;
+        [FieldOffset(676)] public int nEnableThreadModeLog;
+        [FieldOffset(680)] public int nEnableOpPenalLog;
+        [FieldOffset(684)] public int nEnableExtLog;
+        [FieldOffset(688)] public int nEnableErrLog;
+        [FieldOffset(692)] public int bUsingFlowSensor;
+        [FieldOffset(696)] public int nFlowSensorTimeout;
+        [FieldOffset(700)] public int nFlowSensorStartTimeout;
+        [FieldOffset(704)] public int bUsingWaterLevelSensor;
+        [FieldOffset(708)] public int nPurgeAirHoldTime;
+        [FieldOffset(712)] public int bCheckInvalidNcCode;
+        [FieldOffset(716)] public int bCheckNcFileTag;
+        [FieldOffset(720)] public int bCheckMachineID;
+        [FieldOffset(724)] public int bCheckSpindleOffset;
+        [FieldOffset(728)] public int bTransformNcFile;
+        [FieldOffset(732)] public int bCheckBlockSize;
+        [FieldOffset(736)] public int nCheckBlockSizeSpeed;
+        [FieldOffset(740)] public int nCheckBlockSizeTorque;
+        [FieldOffset(744)] public int nGraphicLCD_Port;
+        [FieldOffset(748)] public int bUsingSpindleAirPurge;
+        [FieldOffset(752)] public int nCleaningTimeout_Hour;
+        [FieldOffset(756)] public int nFilterTimeout_sec;
+        [FieldOffset(760)] public int bUsingNCFileAutoClose;
+        [FieldOffset(768)] public double fRunningTimePerLine;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public unsafe struct SConfigData
+    public unsafe struct SMaintenanceData
     {
-        public fixed double fCoordOffset[10];
-        public fixed double fTeachingPoint[55];
-        public fixed double fOptionData[9];
-        public int bUsingDetectBlock;
-        public int nDelayGripBlock;
-        public int bUsingAirLimitSensor;
-        public int nAirLimitInterval;
-        public int bUsingOpPanel;
-        public int bUsingLCD;
-        public int nSelectM28Operation;
-        public int nToolErrorOccure_HandlingCode;
-        public fixed int nToolTimesPerMilling[11];
-        public int nEnableOperationLog;
-        public int nEnableIpcCommLog;
-        public int nEnableThreadModeLog;
-        public int nEnableOpPenalLog;
-        public int nEnableExtLog;
-        public int nEnableErrLog;
-        public int bUsingFlowSensor;
-        public int nFlowSensorTimeout;
-        public int nFlowSensorStartTimeout;
-        public int bUsingWaterLevelSensor;
-        public int nPurgeAirHoldTime;
-        public int bCheckInvalidNcCode;
-        public int bCheckNcFileTag;
-        public int bCheckMachineID;
-        public int bCheckSpindleOffset;
-        public int bTransformNcFile;
-        public int bCheckBlockSize;
-        public int nCheckBlockSizeSpeed;
-        public int nCheckBlockSizeTorque;
-        public int nGraphicLCD_Port;
-        public int bUsingSpindleAirPurge;
-        public int nCleaningTimeout_Hour;
-        public int nFilterTimeout_sec;
-        public int bUsingNCFileAutoClose;
-        public double fRunningTimePerLine;
+        public fixed int bEnableChecking[4];
+        public fixed uint dwMaximumTime[4];
+        public fixed long tmLastMaintenance[4];
     }
 
-    [StructLayout(LayoutKind.Explicit, Pack = 1)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public unsafe struct SIpcCommCommand
     {
-        [FieldOffset(0)] public byte m_cmd;
-        [FieldOffset(1)] public byte s_cmd;
-        [FieldOffset(1)] public fixed byte m_param[63];
-        [FieldOffset(2)] public fixed byte s_param[62];
+        public byte m_cmd;
+        public fixed byte param[63];
     }
 }
