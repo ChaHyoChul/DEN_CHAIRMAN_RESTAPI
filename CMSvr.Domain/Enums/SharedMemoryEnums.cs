@@ -59,4 +59,19 @@ namespace CMSvr.Domain.Enums
         Stop = 3,
         Error = 4
     }
+
+    public enum EN_IPC_COMMAND : byte
+    {
+        IPC_COMMAND_EMG = 1,
+        IPC_COMMAND_RESET = 2,
+        IPC_COMMAND_HOME = 3,
+        IPC_COMMAND_MODE_SELECT = 4,
+        IPC_COMMAND_OPEN = 5,
+        IPC_COMMAND_CLOSE = 6,
+        IPC_COMMAND_RUN = 7,
+        IPC_COMMAND_PAUSE = 8,
+        IPC_COMMAND_STOP = 9,
+        IPC_COMMAND_OPERMODE = 10,
+        IPC_COMMAND_MANUAL = 99
+    }
 }

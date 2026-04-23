@@ -17,15 +17,16 @@ namespace CMSvr.Infrastructure.Services
         private MemoryMappedFile? _mmf;
         private MemoryMappedViewAccessor? _accessor;
         private Mutex? _mutex;
+        private Semaphore? _semaphore;
+        private bool _isInitialized = false;
 
-        // 제어 정보 오프셋
         private const int OFFSET_DATA_COUNT = 0;
         private const int OFFSET_READ_POINT = 4;
         private const int OFFSET_WRITE_POINT = 8;
         private const int OFFSET_TOP_USED_COUNT = 12;
         private const int OFFSET_DATA_BASE = 16;
 
-        public IpcQueueService(string queueName = "IPC_SERVER", string tagName = "01", int maxCount = 10)
+        public IpcQueueService(string queueName = "IPC_SERVER_01", string tagName = "10", int maxCount = 10)
         {
             _queueName = queueName;
             _tagName = tagName;
@@ -37,26 +38,50 @@ namespace CMSvr.Infrastructure.Services
 
         private void Initialize()
         {
-            string fullName = $"{_queueName}_{_tagName}";
-            int totalSize = OFFSET_DATA_BASE + (_maxCount * _itemSize);
+            if (_isInitialized) return;
 
-            try
+            lock (this)
             {
-                _mmf = MemoryMappedFile.OpenExisting(fullName, MemoryMappedFileRights.ReadWrite);
-                _accessor = _mmf.CreateViewAccessor(0, totalSize, MemoryMappedFileAccess.ReadWrite);
-            }
-            catch (FileNotFoundException)
-            {
-                _mmf = MemoryMappedFile.CreateOrOpen(fullName, totalSize, MemoryMappedFileAccess.ReadWrite);
-                _accessor = _mmf.CreateViewAccessor(0, totalSize, MemoryMappedFileAccess.ReadWrite);
-            }
+                if (_isInitialized) return;
 
-            _mutex = new Mutex(false, $"{fullName}_MUTEX");
+                string baseFullName = $"{_queueName}_{_tagName}";
+                string shmName = $"QSHM_{baseFullName}";
+                string mtxName = $"QMTX_{baseFullName}";
+                string smpName = $"QSMP_{baseFullName}";
+
+                int totalSize = OFFSET_DATA_BASE + (_maxCount * _itemSize);
+
+                try
+                {
+                    // 기존에 생성된 커널 객체에 연결
+                    _mmf = MemoryMappedFile.OpenExisting(shmName, MemoryMappedFileRights.ReadWrite);
+                    _accessor = _mmf.CreateViewAccessor(0, totalSize, MemoryMappedFileAccess.ReadWrite);
+                    
+                    if (!Mutex.TryOpenExisting(mtxName, out _mutex))
+                    {
+                        _mutex = new Mutex(false, mtxName);
+                    }
+
+                    if (!Semaphore.TryOpenExisting(smpName, out _semaphore))
+                    {
+                        _semaphore = new Semaphore(0, _maxCount, smpName);
+                    }
+
+                    _isInitialized = true;
+                    System.Diagnostics.Debug.WriteLine($"[IpcQueue] Successfully initialized singleton for {shmName}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[IpcQueue] Initialization deferred (Device might be offline): {ex.Message}");
+                }
+            }
         }
 
         public bool Write(SIpcCommCommand command)
         {
-            if (_accessor == null || _mutex == null) return false;
+            // 지연 초기화 지원
+            if (!_isInitialized) Initialize();
+            if (!_isInitialized || _accessor == null || _mutex == null) return false;
 
             try
             {
@@ -67,29 +92,21 @@ namespace CMSvr.Infrastructure.Services
                 try
                 {
                     int* pDataCount = (int*)(basePtr + OFFSET_DATA_COUNT);
-                    if (*pDataCount >= _maxCount)
-                    {
-                        return false;
-                    }
+                    if (*pDataCount >= _maxCount) return false;
 
                     int* pWritePoint = (int*)(basePtr + OFFSET_WRITE_POINT);
-                    
-                    // 데이터 쓰기 위치 계산
                     byte* targetPtr = basePtr + OFFSET_DATA_BASE + (*pWritePoint * _itemSize);
 
-                    // 구조체 직접 복사 (포인터 대입)
                     *(SIpcCommCommand*)targetPtr = command;
 
-                    // 인덱스 및 카운트 갱신
                     *pWritePoint = (*pWritePoint + 1) % _maxCount;
                     (*pDataCount)++;
 
-                    // TopUsedCount 갱신
                     int* pTopUsedCount = (int*)(basePtr + OFFSET_TOP_USED_COUNT);
-                    if (*pDataCount > *pTopUsedCount)
-                    {
-                        *pTopUsedCount = *pDataCount;
-                    }
+                    if (*pDataCount > *pTopUsedCount) *pTopUsedCount = *pDataCount;
+
+                    _accessor.Flush();
+                    _semaphore?.Release(1);
 
                     return true;
                 }
@@ -98,13 +115,14 @@ namespace CMSvr.Infrastructure.Services
                     _accessor.SafeMemoryMappedViewHandle.ReleasePointer();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[IpcQueue] Write failed: {ex.Message}");
                 return false;
             }
             finally
             {
-                _mutex?.ReleaseMutex();
+                try { _mutex?.ReleaseMutex(); } catch { }
             }
         }
 
@@ -113,6 +131,8 @@ namespace CMSvr.Infrastructure.Services
             _accessor?.Dispose();
             _mmf?.Dispose();
             _mutex?.Dispose();
+            _semaphore?.Dispose();
+            _isInitialized = false;
         }
     }
 }
