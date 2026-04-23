@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace CMSvr.Domain.Dtos.MachineStatus
@@ -17,6 +16,5 @@ namespace CMSvr.Domain.Dtos.MachineStatus
     {
         public int TotalToolCount { get; set; }
         public List<ToolStatusDto> Tools { get; set; } = new();
-        public DateTime Timestamp { get; set; } = DateTime.Now;
     }
 }

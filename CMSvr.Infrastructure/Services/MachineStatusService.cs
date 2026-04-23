@@ -84,6 +84,18 @@ namespace CMSvr.Infrastructure.Services
             return dto;
         }
 
+        public unsafe MachineErrorDto GetCurrentError()
+        {
+            var state = _shmService.ReadSharedMemory<SThreadState>(SharedMemoryObjectNames.PThreadState);
+
+            return new MachineErrorDto
+            {
+                ErrorCode = state.nErrorCode,
+                ErrorType = state.nErrorType,
+                ErrorMessage = BytePtrConverter.GetString(state.szErrorMessage, 512)
+            };
+        }
+
         private (int code, string message) MapToolError(uint dwErrCode)
         {
             return dwErrCode switch

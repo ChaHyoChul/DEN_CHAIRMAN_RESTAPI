@@ -42,5 +42,19 @@ namespace CMSvr.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [HttpGet("error")]
+        public ActionResult<MachineErrorDto> GetCurrentError()
+        {
+            try
+            {
+                var errorInfo = _machineStatusService.GetCurrentError();
+                return Ok(errorInfo);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }
