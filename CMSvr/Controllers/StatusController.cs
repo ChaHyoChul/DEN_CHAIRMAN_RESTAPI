@@ -5,6 +5,7 @@ using CMSvr.Infrastructure.Utils;
 
 namespace CMSvr.Controllers
 {
+    [NonController]
     [ApiController]
     [Route("api/[controller]")]
     public class StatusController : ControllerBase
@@ -22,7 +23,7 @@ namespace CMSvr.Controllers
             var status = _sharedMemoryService.ReadSharedMemory<SPAStatus>(SharedMemoryObjectNames.PmacState);
 
             var result = new {
-                MDCode = status.nMDCode,
+                // MDCode = status.nMDCode, (Field removed to match C++ struct)
                 LineNumber = status.nLineNumber,
                 RunStatus = status.nRunStatus,
                 Position = new double[] {

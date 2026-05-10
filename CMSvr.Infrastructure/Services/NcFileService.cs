@@ -6,16 +6,24 @@ using CMSvr.Domain.Enums;
 using CMSvr.Infrastructure.Utils;
 using System.IO;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace CMSvr.Infrastructure.Services
 {
     public class NcFileService
     {
         private readonly SharedMemoryService _shmService;
+        private readonly MachineControlService _controlService;
+        private readonly IConfiguration _configuration;
 
-        public NcFileService(SharedMemoryService shmService)
+        public NcFileService(
+            SharedMemoryService shmService, 
+            MachineControlService controlService,
+            IConfiguration configuration)
         {
             _shmService = shmService;
+            _controlService = controlService;
+            _configuration = configuration;
         }
 
         public unsafe NcFileListDto GetNcFileList()
@@ -73,8 +81,15 @@ namespace CMSvr.Infrastructure.Services
                 }
             }
 
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string targetDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "Data", "NCFILES"));
+            // appsettings.json의 NCFilesForCM 항목 사용
+            string targetDir = _configuration["NCFilesForCM"] ?? "";
+            
+            // 만약 설정이 없으면 기존 로직(상대 경로) 사용
+            if (string.IsNullOrEmpty(targetDir))
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                targetDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "Data", "NCFILES"));
+            }
 
             if (!Directory.Exists(targetDir))
             {
@@ -85,7 +100,11 @@ namespace CMSvr.Infrastructure.Services
 
             try
             {
-                File.Copy(fullPath, destPath, true);
+                // 원본 파일과 대상 파일이 같으면 복사 스킵
+                if (!string.Equals(Path.GetFullPath(fullPath), Path.GetFullPath(destPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Copy(fullPath, destPath, true);
+                }
             }
             catch (Exception ex)
             {
@@ -169,70 +188,67 @@ namespace CMSvr.Infrastructure.Services
             return DeleteNcFile(index);
         }
 
+        public unsafe bool ClearNcFileList()
+        {
+            var fileMgr = _shmService.ReadSharedMemory<SNCFileMgr>(SharedMemoryObjectNames.NcFileMgr);
+            
+            // 파일 개수 및 인덱스 초기화
+            fileMgr.nNumFiles = 0;
+            fileMgr.nCurrentFileIndex = -1;
+
+            // 전체 파일 정보 배열 초기화 (100개 항목)
+            for (int i = 0; i < 100; i++)
+            {
+                fileMgr.hNCFileInfo[i] = default;
+            }
+
+            _shmService.WriteSharedMemory(SharedMemoryObjectNames.NcFileMgr, fileMgr);
+            return true;
+        }
+
+        /// <summary>
+        /// 물리적 경로에서 NC 파일을 삭제합니다.
+        /// </summary>
+        public bool DeleteNcFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return false;
+
+            string targetDir = _configuration["NCFilesForCM"] ?? "";
+            if (string.IsNullOrEmpty(targetDir))
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                targetDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "Data", "NCFILES"));
+            }
+
+            string filePath = Path.Combine(targetDir, fileName);
+
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[NcFileService] Physical delete failed: {ex.Message}");
+            }
+            return false;
+        }
+
         public unsafe bool CloseNcFile()
         {
-            // 1. 리스트 선택 해제
-            var fileMgr = _shmService.ReadSharedMemory<SNCFileMgr>(SharedMemoryObjectNames.NcFileMgr);
-            int count = Math.Clamp(fileMgr.nNumFiles, 0, 100);
-            for (int i = 0; i < count; i++)
-            {
-                fileMgr.hNCFileInfo[i].is_select = (char)0;
-            }
-            fileMgr.nCurrentFileIndex = -1;
-            _shmService.WriteSharedMemory(SharedMemoryObjectNames.NcFileMgr, fileMgr);
-
-            // 2. SPAStatus 파일명 초기화
-            var paStatus = _shmService.ReadSharedMemory<SPAStatus>(SharedMemoryObjectNames.PmacState);
-            CopyStringToFixedByte("", paStatus.szCurrentFileName, 128);
-            _shmService.WriteSharedMemory(SharedMemoryObjectNames.PmacState, paStatus);
-
-            // 3. SThreadState 상태 해제
-            var threadState = _shmService.ReadSharedMemory<SThreadState>(SharedMemoryObjectNames.PThreadState);
-            threadState.bIsOpenNCFile = 0;
-            threadState.bUpdateNcFileList_ = 1;
-            threadState.hNCFileInfo = default;
-            
-            _shmService.WriteSharedMemory(SharedMemoryObjectNames.PThreadState, threadState);
-
-            return true;
+            // 직접 메모리를 수정하지 않고 MachineControlService를 통해 명령 전송
+            // EPncMDLL에서 로딩 및 UI 업데이트를 수행하도록 함
+            return _controlService.CloseNcFile();
         }
 
         public unsafe bool OpenNcFileByIndex(int index)
         {
-            var fileMgr = _shmService.ReadSharedMemory<SNCFileMgr>(SharedMemoryObjectNames.NcFileMgr);
-            if (index < 0 || index >= fileMgr.nNumFiles)
-            {
-                return false;
-            }
-
-            string selectedFileName = "";
-            for (int i = 0; i < fileMgr.nNumFiles; i++)
-            {
-                bool isTarget = (i == index);
-                fileMgr.hNCFileInfo[i].is_select = (char)(isTarget ? 1 : 0);
-                if (isTarget)
-                {
-                    selectedFileName = BytePtrConverter.GetString(fileMgr.hNCFileInfo[i].file_name, 257);
-                }
-            }
-
-            fileMgr.nCurrentFileIndex = index;
-            _shmService.WriteSharedMemory(SharedMemoryObjectNames.NcFileMgr, fileMgr);
-
-            // 1. SPAStatus 업데이트
-            var paStatus = _shmService.ReadSharedMemory<SPAStatus>(SharedMemoryObjectNames.PmacState);
-            CopyStringToFixedByte(selectedFileName, paStatus.szCurrentFileName, 128);
-            _shmService.WriteSharedMemory(SharedMemoryObjectNames.PmacState, paStatus);
-
-            // 2. SThreadState 업데이트
-            var threadState = _shmService.ReadSharedMemory<SThreadState>(SharedMemoryObjectNames.PThreadState);
-            threadState.bIsOpenNCFile = 1;
-            threadState.bUpdateNcFileList_ = 1;
-            threadState.hNCFileInfo = fileMgr.hNCFileInfo[index];
-            
-            _shmService.WriteSharedMemory(SharedMemoryObjectNames.PThreadState, threadState);
-
-            return true;
+            // 직접 메모리를 수정하지 않고 MachineControlService를 통해 명령 전송
+            // EPncMDLL에서 로딩 및 UI 업데이트를 수행하도록 함
+            return _controlService.OpenNcFileByIndex(index);
         }
 
         public unsafe bool OpenNcFileByName(string fileName)

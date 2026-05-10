@@ -48,66 +48,68 @@ namespace CMSvr.Domain.Entities
     [StructLayout(LayoutKind.Explicit, Size = 936)]
     public unsafe struct SPAStatus
     {
-        [FieldOffset(0)] public fixed int bInput[25];
-        [FieldOffset(100)] public fixed int bOutput[24];
-        [FieldOffset(196)] public int nMDCode;
-        [FieldOffset(200)] public fixed byte szCurrentFileName[128];
-        [FieldOffset(328)] public int nBlockNumber;
-        [FieldOffset(332)] public int nLineNumber;
-        [FieldOffset(336)] public int nGPLErrorCode;
-        [FieldOffset(340)] public int nRunStatus;
-        [FieldOffset(344)] public int nNumberProgramCycle;
-        [FieldOffset(352)] public double fProgramCycleTime; 
-        [FieldOffset(360)] public fixed double fPosition[5]; 
-        [FieldOffset(400)] public fixed double fVelocity[5];
-        [FieldOffset(440)] public fixed double fPositionTool[5];
-        [FieldOffset(480)] public int nServoPower;
-        [FieldOffset(484)] public int nServoHomeState;
-        [FieldOffset(488)] public int nServoErrorState;
-        [FieldOffset(492)] public int nZReadyState;
-        [FieldOffset(496)] public int nIO_Board_Status;
-        [FieldOffset(500)] public int nSpindle_Board_Status;
-        [FieldOffset(504)] public int nSpindle2_Board_Status;
-        [FieldOffset(508)] public int nCurrentToolNo;
-        [FieldOffset(512)] public int nCurrentTool2No;
-        [FieldOffset(516)] public int nCurrentCoordinateNo;
-        [FieldOffset(520)] public double fCurrentToolLenght;
-        [FieldOffset(528)] public double fCurrentTool2Lenght;
-        [FieldOffset(536)] public int nSpindleRun;
-        [FieldOffset(540)] public int nSpindle2Run;
-        [FieldOffset(544)] public int nSpindleSpeed;
-        [FieldOffset(548)] public int nSpindleSpeed2;
-        [FieldOffset(552)] public int nSpindleSpeedSetting;
-        [FieldOffset(556)] public int nSpindleOverride;
-        [FieldOffset(560)] public int nSpindleSpeedWithOverride;
-        [FieldOffset(564)] public int nMotorOverride;
-        [FieldOffset(568)] public int nMotorFeedrate;
-        [FieldOffset(572)] public int nMotorFeedrateWithOverride;
-        [FieldOffset(576)] public int nRndErrorCode;
-        [FieldOffset(580)] public fixed byte szRndErrorMessage[256];
-        [FieldOffset(836)] public int nStreamStatusCode;
-        [FieldOffset(840)] public int nStreamLineNumber;
-        [FieldOffset(844)] public int nStreamBufferCount;
-        [FieldOffset(848)] public int nToolLengthUpdateFlag;
-        [FieldOffset(852)] public int nTool2LengthUpdateFlag;
-        [FieldOffset(856)] public int nSpindle1ColletOpenFlag;
-        [FieldOffset(860)] public int nSpindle2ColletOpenFlag;
-        [FieldOffset(864)] public int nSpindle1PurgeAirOnFlag;
-        [FieldOffset(868)] public int nSpindle2PurgeAirOnFlag;
-        [FieldOffset(872)] public int nDuringToolChaneFlag;
-        [FieldOffset(876)] public int nEMOButtonFlag;
-        [FieldOffset(880)] public int nMotorMovingFlag;
-        [FieldOffset(884)] public int bEMOStatus;
-        [FieldOffset(888)] public int bLCDPassiveMode;
-        [FieldOffset(892)] public int bLCDAlive;
-        [FieldOffset(900)] public int bLCDConfirmed;
-        [FieldOffset(904)] public int bLCDFinished;
-        [FieldOffset(908)] public int bLCDEMOclicked;
-        [FieldOffset(912)] public int bLCDStartClicked;
-        [FieldOffset(916)] public int bLCDStopClicked;
-        [FieldOffset(916)] public int bLCDReadyposClicked;
-        [FieldOffset(920)] public int bLCDHomingClicked;
-        [FieldOffset(924)] public int bLCDRefresh;
+        [FieldOffset(0)] public fixed int bInput[25];      // 100 bytes (0-99)
+        [FieldOffset(100)] public fixed int bOutput[24];   // 96 bytes (100-195)
+        
+        // nMDCode는 C++ 소스에 존재하지 않으므로 제거하고 오프셋을 4바이트씩 당깁니다.
+
+        [FieldOffset(196)] public fixed byte szCurrentFileName[128]; // 196번지 시작
+        [FieldOffset(324)] public int nBlockNumber;
+        [FieldOffset(328)] public int nLineNumber;
+        [FieldOffset(332)] public int nGPLErrorCode;
+        [FieldOffset(336)] public int nRunStatus;
+        [FieldOffset(340)] public int nNumberProgramCycle;
+        [FieldOffset(348)] public double fProgramCycleTime; 
+        [FieldOffset(356)] public fixed double fPosition[5]; 
+        [FieldOffset(396)] public fixed double fVelocity[5];
+        [FieldOffset(436)] public fixed double fPositionTool[5];
+        [FieldOffset(476)] public int nServoPower;
+        [FieldOffset(480)] public int nServoHomeState;
+        [FieldOffset(484)] public int nServoErrorState;
+        [FieldOffset(488)] public int nZReadyState;
+        [FieldOffset(492)] public int nIO_Board_Status;
+        [FieldOffset(496)] public int nSpindle_Board_Status;
+        [FieldOffset(500)] public int nSpindle2_Board_Status;
+        [FieldOffset(504)] public int nCurrentToolNo;
+        [FieldOffset(508)] public int nCurrentTool2No;
+        [FieldOffset(512)] public int nCurrentCoordinateNo;
+        [FieldOffset(516)] public double fCurrentToolLenght;
+        [FieldOffset(524)] public double fCurrentTool2Lenght;
+        [FieldOffset(532)] public int nSpindleRun;
+        [FieldOffset(536)] public int nSpindle2Run;
+        [FieldOffset(540)] public int nSpindleSpeed;
+        [FieldOffset(544)] public int nSpindleSpeed2;
+        [FieldOffset(548)] public int nSpindleSpeedSetting;
+        [FieldOffset(552)] public int nSpindleOverride;
+        [FieldOffset(556)] public int nSpindleSpeedWithOverride;
+        [FieldOffset(560)] public int nMotorOverride;
+        [FieldOffset(564)] public int nMotorFeedrate;
+        [FieldOffset(568)] public int nMotorFeedrateWithOverride;
+        [FieldOffset(572)] public int nRndErrorCode;
+        [FieldOffset(576)] public fixed byte szRndErrorMessage[256];
+        [FieldOffset(832)] public int nStreamStatusCode;
+        [FieldOffset(836)] public int nStreamLineNumber;
+        [FieldOffset(840)] public int nStreamBufferCount;
+        [FieldOffset(844)] public int nToolLengthUpdateFlag;
+        [FieldOffset(848)] public int nTool2LengthUpdateFlag;
+        [FieldOffset(852)] public int nSpindle1ColletOpenFlag;
+        [FieldOffset(856)] public int nSpindle2ColletOpenFlag;
+        [FieldOffset(860)] public int nSpindle1PurgeAirOnFlag;
+        [FieldOffset(864)] public int nSpindle2PurgeAirOnFlag;
+        [FieldOffset(868)] public int nDuringToolChaneFlag;
+        [FieldOffset(872)] public int nEMOButtonFlag;
+        [FieldOffset(876)] public int nMotorMovingFlag;
+        [FieldOffset(880)] public int bEMOStatus;
+        [FieldOffset(884)] public int bLCDPassiveMode;
+        [FieldOffset(888)] public int bLCDAlive;
+        [FieldOffset(892)] public int bLCDConfirmed;
+        [FieldOffset(896)] public int bLCDFinished;
+        [FieldOffset(900)] public int bLCDEMOclicked;
+        [FieldOffset(904)] public int bLCDStartClicked;
+        [FieldOffset(908)] public int bLCDStopClicked;
+        [FieldOffset(912)] public int bLCDReadyposClicked;
+        [FieldOffset(916)] public int bLCDHomingClicked;
+        [FieldOffset(920)] public int bLCDRefresh;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 13432)]

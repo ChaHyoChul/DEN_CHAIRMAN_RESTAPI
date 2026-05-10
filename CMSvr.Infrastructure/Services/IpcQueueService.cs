@@ -26,7 +26,7 @@ namespace CMSvr.Infrastructure.Services
         private const int OFFSET_TOP_USED_COUNT = 12;
         private const int OFFSET_DATA_BASE = 16;
 
-        public IpcQueueService(string queueName = "IPC_SERVER_01", string tagName = "10", int maxCount = 10)
+        public IpcQueueService(string queueName = "IPC_SERVER", string tagName = "NONE", int maxCount = 10)
         {
             _queueName = queueName;
             _tagName = tagName;

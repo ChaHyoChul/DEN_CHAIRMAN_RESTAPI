@@ -5,6 +5,7 @@ using System;
 
 namespace CMSvr.Controllers
 {
+    [NonController]
     [ApiController]
     [Route("api/[controller]")]
     public class NcFileController : ControllerBase

@@ -4,6 +4,7 @@ using CMSvr.Domain.Dtos.MachineStatus;
 
 namespace CMSvr.Controllers
 {
+    [NonController]
     [ApiController]
     [Route("api/[controller]")]
     public class MachineStatusController : ControllerBase
